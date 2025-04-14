@@ -18,5 +18,9 @@
 		"svelte": "^5.0.0",
 		"vite": "^6.0.0",
 		"wrangler": "^4.10.0"
+	},
+	"dependencies": {
+		"algoliasearch": "^5.23.3",
+		"instantsearch.js": "^4.78.1"
 	}
 }

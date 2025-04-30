@@ -9,7 +9,7 @@
     import {onMount} from 'svelte';
     let search;
     onMount(() => {
-		console.log('the component has mounted');
+		//console.log('the component has mounted');
 
         const searchClient = algoliasearch(PUBLIC_APP_ID, PUBLIC_ALGOLIA_API_KEY);
         let totalRecords;
@@ -24,21 +24,21 @@
         const customHits = connectHits((renderOptions, isFirstRender) => {
             const { hits, widgetParams } = renderOptions;
             const container = widgetParams.container;
-            console.log(hits);
+            //console.log(hits);
             container.innerHTML = hits.map((hit, index) =>{
                 let class_name = index % 2 ? "odd" : "even";
                 return `
                     <tr class="${class_name}">
                     <td>${hit.type}</td>
-                    <td>${hit.surnames}</td>
-                    <td>${hit.forenames}</td>
-                    <td>${hit.places}</td>
-                    <td>${hit.made}</td>
-                    <td>${hit.probate}</td>
-                    <td>${hit.regref}</td>
-                    <td>${hit.origref}</td>
-                    <td>${hit.comments}</td>
-                    <td>${hit.year}</td>
+                    <td>${hit._highlightResult.surnames?.value || hit.surnames}</td>
+                    <td>${hit._highlightResult.forenames?.value || hit.forenames}</td>
+                    <td>${hit._highlightResult.places?.value ||hit.places}</td>
+                    <td>${hit._highlightResult.made?.value ||hit.made}</td>
+                    <td>${hit._highlightResult.probate?.value || hit.probate}</td>
+                    <td>${hit._highlightResult.regref?.value ||hit.regref}</td>
+                    <td>${hit._highlightResult.origref?.value || hit.origref}</td>
+                    <td>${hit._highlightResult.comments?.value || hit.comments}</td>
+                    <td>${hit._highlightResult.year?.value ||hit.year}</td>
                     </tr>`;
             }).join('');
         });
@@ -131,34 +131,45 @@
 	});
     function build_query(e){
             e.preventDefault();
-            console.log(e);
+            //console.log(e);
             let querys = new Array();
+            //let  searchBoxQuery = search.helper.state.query;
             let dateFrom = document.querySelector("#willsTable_range_from_9").value;
             let dateTo = document.querySelector("#willsTable_range_to_9").value;
+            let fuzzy = document.querySelector("#willsTable_fuzzy_1").checked;
             let filterParams = {
                 type : document.querySelector("select.search_init").value,
                 surnames : document.querySelector("#willsTable_text_1").value,
                 forenames : document.querySelector("#willsTable_text_2").value,
                 places : document.querySelector("#willsTable_text_3").value,
-                regRef : document.querySelector("#willsTable_text_6").value,
-                origRef : document.querySelector("#willsTable_text_7").value,
+                regref : document.querySelector("#willsTable_text_6").value,
+                origref : document.querySelector("#willsTable_text_7").value,
                 comments : document.querySelector("#willsTable_text_8").value,
+            }
+            let queryParameter = {}
+            queryParameter.query = search.helper.state.query;
+            if(fuzzy){
+                queryParameter.restrictSearchableAttributes = ['surnames'];
+                queryParameter.query = filterParams.surnames;
+                filterParams.surnames = null;
             }
             querys.push(formatDateString(dateFrom, dateTo));
             for(let key in filterParams){
                 if(filterParams[key]){
-                    let query = `${key}:${filterParams[key]}`;
+                    let query = `${key}:"${filterParams[key]}"`;
                     querys.push(query);
                 }
             }
             querys = querys.filter(item => item);
-            console.log(querys);
+            //console.log(querys);
             let filterQuery = querys.join(" AND ");
-            let  searchBoxQuery = search.helper.state.query;
-            console.log(filterQuery);
+            queryParameter.filters = filterQuery;
+            //console.log(filterQuery, queryParameter);
             search.helper
-                .setQuery(searchBoxQuery)
-                .setQueryParameter('filters', filterQuery)
+                .setQuery(queryParameter.query)
+                .setQueryParameter("filters", queryParameter.filters)
+                .setQueryParameter("restrictSearchableAttributes", queryParameter.restrictSearchableAttributes)
+                .setQueryParameter("attributesToHighlight", queryParameter.restrictSearchableAttributes)
                 .search();
     }
     function formatDateString(dateFrom, dateTo){
@@ -190,36 +201,32 @@
 	
 
 <div class="ais-InstantSearch">
-    <h1>Kent wills dynamic record</h1>
-  
     <div class="right-panel">
-    <div class="wrap">
-
-        <div class="table-head"><label class="searchbox-label" for="searchbox">Broad Search:<div id="searchbox"></div></label></div>
-        <table>
-            <thead>
-                <tr role="row"><th style="width:60px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Type: activate to sort column ascending"><div class="DataTables_sort_wrapper">Type<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:140px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Surnames: activate to sort column ascending"><div class="DataTables_sort_wrapper">Surnames<span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span></div></th><th style="width:100px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Forenames: activate to sort column ascending"><div class="DataTables_sort_wrapper">Forenames<span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span></div></th><th style="width:100px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Places: activate to sort column ascending"><div class="DataTables_sort_wrapper">Places<span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span></div></th><th style="width:50px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Made: activate to sort column ascending"><div class="DataTables_sort_wrapper">Made<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:60px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Probate: activate to sort column ascending"><div class="DataTables_sort_wrapper">Probate<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width: 125px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Register ref.: activate to sort column ascending"><div class="DataTables_sort_wrapper">Register ref.<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width: 120px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Original ref.: activate to sort column ascending"><div class="DataTables_sort_wrapper">Original ref.<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:130px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Comments: activate to sort column ascending"><div class="DataTables_sort_wrapper">Comments<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:50px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Year: activate to sort column ascending"><div class="DataTables_sort_wrapper">Year<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th></tr>
-                <tr role="row">
-                    <th style="width:60px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_select"><select oninput="{build_query}" class="search_init select_filter"><option value="" class="search_init">All</option><option value="Inv">Inv</option><option value="Will">Will</option><option value="Act">Act</option></select></span></th>
-                    <th style="width:140px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_1" type="text" placeholder="Surnames" class="search_init text_filter fuzzy_search" value=""><span>Fuzzy:</span><input class="fuzzybox" id="willsTable_fuzzy_1" type="checkbox" value="1"></span></th>
-                    <th style="width:100px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_2" type="text" placeholder="Forenames" class="search_init text_filter" value=""></span></th>
-                    <th style="width:100px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_3" type="text" placeholder="Places" class="search_init text_filter" value=""></span></th>
-                    <th style="width:50px;" class="ui-state-default" rowspan="1" colspan="1">Made</th><th style="width:60px;" class="ui-state-default" rowspan="1" colspan="1">Probate</th>
-                    <th style="width:110px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_6" type="text" placeholder="Register ref." class="search_init text_filter" value=""></span></th>
-                    <th style="width:110px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_7" type="text" placeholder="Original ref." class="search_init text_filter" value=""></span></th>
-                    <th style="width:130px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_8" type="text" placeholder="Comments" class="search_init text_filter" value=""></span></th>
-                    <th style="width:50px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_number_range">From <input oninput="{build_query}" type="text" placeholder="Year (e.g. 1621)" inputmode="numeric" pattern="\d{0,4}" maxlength="4" id="willsTable_range_from_9" rel="9"> To <input type="text" inputmode="numeric" pattern="\d{0,4}" placeholder="Year (e.g. 1629)" maxlength="4" class="number_range_filter" id="willsTable_range_to_9" rel="9"></span></th></tr>
-            </thead>
-            <tbody id="hits">
-            </tbody>
-        </table>
-        <div class="table-base">
-            <div id="text-pagination"></div>
-            <div id="pagination"></div>
+        <div class="wrap">
+            <div class="table-head"><label class="searchbox-label" for="searchbox">Broad Search:<div id="searchbox"></div></label></div>
+            <table>
+                <thead>
+                    <tr role="row"><th style="width:60px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Type: activate to sort column ascending"><div class="DataTables_sort_wrapper">Type<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:140px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Surnames: activate to sort column ascending"><div class="DataTables_sort_wrapper">Surnames<span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span></div></th><th style="width:100px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Forenames: activate to sort column ascending"><div class="DataTables_sort_wrapper">Forenames<span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span></div></th><th style="width:100px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Places: activate to sort column ascending"><div class="DataTables_sort_wrapper">Places<span class="DataTables_sort_icon css_right ui-icon ui-icon-triangle-1-n"></span></div></th><th style="width:50px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Made: activate to sort column ascending"><div class="DataTables_sort_wrapper">Made<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:60px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Probate: activate to sort column ascending"><div class="DataTables_sort_wrapper">Probate<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width: 125px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Register ref.: activate to sort column ascending"><div class="DataTables_sort_wrapper">Register ref.<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width: 120px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Original ref.: activate to sort column ascending"><div class="DataTables_sort_wrapper">Original ref.<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:130px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Comments: activate to sort column ascending"><div class="DataTables_sort_wrapper">Comments<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th><th style="width:50px;" class="ui-state-default" role="columnheader" tabindex="0" aria-controls="willsTable" rowspan="1" colspan="1" aria-label="Year: activate to sort column ascending"><div class="DataTables_sort_wrapper">Year<span class="DataTables_sort_icon css_right ui-icon ui-icon-carat-2-n-s"></span></div></th></tr>
+                    <tr role="row">
+                        <th style="width:60px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_select"><select oninput="{build_query}" class="search_init select_filter"><option value="" class="search_init">All</option><option value="Inv">Inv</option><option value="Will">Will</option><option value="Act">Act</option></select></span></th>
+                        <th style="width:140px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_1" type="text" placeholder="Surnames" class="search_init text_filter fuzzy_search" value=""><span>Fuzzy:</span><input class="fuzzybox" id="willsTable_fuzzy_1" type="checkbox" value="1"></span></th>
+                        <th style="width:100px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_2" type="text" placeholder="Forenames" class="search_init text_filter" value=""></span></th>
+                        <th style="width:100px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_3" type="text" placeholder="Places" class="search_init text_filter" value=""></span></th>
+                        <th style="width:50px;" class="ui-state-default" rowspan="1" colspan="1">Made</th><th style="width:60px;" class="ui-state-default" rowspan="1" colspan="1">Probate</th>
+                        <th style="width:110px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_6" type="text" placeholder="Register ref." class="search_init text_filter" value=""></span></th>
+                        <th style="width:110px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_7" type="text" placeholder="Original ref." class="search_init text_filter" value=""></span></th>
+                        <th style="width:130px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_text"><input oninput="{build_query}" id="willsTable_text_8" type="text" placeholder="Comments" class="search_init text_filter" value=""></span></th>
+                        <th style="width:50px;" class="ui-state-default" rowspan="1" colspan="1"><span class="filter_column filter_number_range">From <input oninput="{build_query}" type="text" placeholder="Year (e.g. 1621)" inputmode="numeric" pattern="\d{0,4}" maxlength="4" id="willsTable_range_from_9" rel="9"> To <input type="text" inputmode="numeric" pattern="\d{0,4}" placeholder="Year (e.g. 1629)" maxlength="4" class="number_range_filter" id="willsTable_range_to_9" rel="9"></span></th></tr>
+                </thead>
+                <tbody id="hits">
+                </tbody>
+            </table>
+            <div class="table-base">
+                <div id="text-pagination"></div>
+                <div id="pagination"></div>
+            </div>
         </div>
     </div>
-    </div>
-    
 </div>
 <style>
     :global .even{
